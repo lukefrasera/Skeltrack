@@ -1,11 +1,14 @@
-#include <gfreenect.h>
+#include <gfreenect-0.1/gfreenect.h>
 #include <skeltrack.h>
 #include <math.h>
 #include <string.h>
-#include <cairo.h>
+#include <cairo/cairo.h>
 #include <glib-object.h>
-#include <clutter/clutter.h>
-#include <clutter/clutter-keysyms.h>
+#include <clutter-1.0/clutter/clutter.h>
+#include <clutter-1.0/clutter/clutter-keysyms.h>
+
+// Add timing functionality
+#include <time.h>
 
 static SkeltrackSkeleton *skeleton = NULL;
 static GFreenectDevice *kinect = NULL;
@@ -24,7 +27,7 @@ static guint THRESHOLD_BEGIN = 500;
 /* Adjust this value to increase of decrease
    the threshold */
 static guint THRESHOLD_END   = 1500;
-
+clock_t c_start, c_end;
 typedef struct
 {
   guint16 *reduced_buffer;
@@ -56,7 +59,10 @@ on_track_joints (GObject      *obj,
   list = skeltrack_skeleton_track_joints_finish (skeleton,
                                                  res,
                                                  &error);
+  c_end = clock();
 
+  // Record timing and send out to text file.
+  printf("%f\n", 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC);
   if (error == NULL)
     {
       if (SHOW_SKELETON)
@@ -196,7 +202,7 @@ on_depth_frame (GFreenectDevice *kinect, gpointer user_data)
                                 dimension_factor,
                                 THRESHOLD_BEGIN,
                                 THRESHOLD_END);
-
+  c_start = clock();
   skeltrack_skeleton_track_joints (skeleton,
                                    buffer_info->reduced_buffer,
                                    buffer_info->reduced_width,
@@ -204,7 +210,6 @@ on_depth_frame (GFreenectDevice *kinect, gpointer user_data)
                                    NULL,
                                    on_track_joints,
                                    buffer_info);
-
 
   content = clutter_actor_get_content (depth_tex);
   if (!SHOW_SKELETON)
